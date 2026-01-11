@@ -1,0 +1,9 @@
+[workspace]
+resolver = "3"
+members = [
+    "runner",
+    "cybird",
+    "cybird-macro",
+    "upgrade3",
+    "clicker-plugin",
+]

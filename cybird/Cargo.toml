@@ -1,0 +1,7 @@
+[package]
+name = "cybird"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+cybird-macro = { path = "../cybird-macro" }
