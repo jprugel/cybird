@@ -1,10 +1,24 @@
 use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
 use clicker_plugin::*;
+use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
 #[derive(Resource, Default)]
 struct Score(u32);
+
+struct UpgradeProcessor(HashMap<u32, Vec<Upgrade>>);
+
+impl UpgradeProcessor {
+    fn new(upgrades: Vec<Upgrade>) -> Self {
+        let mut map = HashMap::new();
+        for upgrade in upgrades {
+            let stage = upgrade.stage;
+            map.entry(stage).or_insert_with(Vec::new).push(upgrade);
+        }
+        Self(map)
+    }
+}
 
 #[derive(Message)]
 enum Transaction {
@@ -95,19 +109,19 @@ fn stage_handler(
     mut gamestate: ResMut<GameState>,
     mut message_writer: MessageWriter<OnStage>,
 ) {
-    if score.0 >= 100 && gamestate.stage == 0 {
+    if score.0 >= 10 && gamestate.stage == 0 {
         gamestate.stage += 1;
         message_writer.write(OnStage(1));
     }
-    if score.0 >= 1000 && gamestate.stage == 1 {
+    if score.0 >= 100 && gamestate.stage == 1 {
         gamestate.stage += 1;
         message_writer.write(OnStage(2));
     }
-    if score.0 >= 10000 && gamestate.stage == 2 {
+    if score.0 >= 1000 && gamestate.stage == 2 {
         gamestate.stage += 1;
         message_writer.write(OnStage(3));
     }
-    if score.0 >= 100000 && gamestate.stage == 3 {
+    if score.0 >= 10000 && gamestate.stage == 3 {
         gamestate.stage += 1;
         message_writer.write(OnStage(4));
     }
@@ -222,8 +236,8 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
         width: percent(100),
         height: percent(100),
         flex_direction: FlexDirection::Column,
-        //align_items: AlignItems::Start,
-        justify_content: JustifyContent::FlexEnd,
+        align_items: AlignItems::End,
+        justify_content: JustifyContent::FlexStart,
         ..default()
     });
     for (id, upgrade) in gamestate.upgrades.iter() {
