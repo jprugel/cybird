@@ -24,6 +24,7 @@ impl PluginLoader {
 #[derive(Resource)]
 pub struct GameState {
     upgrades: Upgrades,
+    stage: u32,
 }
 
 #[derive(Component)]
@@ -48,7 +49,10 @@ impl Default for GameState {
     fn default() -> Self {
         let map = Upgrades::default();
 
-        Self { upgrades: map }
+        Self {
+            upgrades: map,
+            stage: 0,
+        }
     }
 }
 
@@ -93,6 +97,9 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
     gamestate.upgrades.register(Upgrade {
         name: "Cookie Recycler".to_string(),
         level: 0,
+
+        order: 1,
+        criteria: 0,
         cost: |level| level * 2 + 1,
         effect: |level| level,
     });
@@ -100,6 +107,9 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
     gamestate.upgrades.register(Upgrade {
         name: "Cookie Accelerator".to_string(),
         level: 0,
+
+        order: 2,
+        criteria: 10,
         cost: |level| level * 10 + 10,
         effect: |level| level * 2,
     });
@@ -121,7 +131,6 @@ fn upgrade_effect(
     mut msg_reader: MessageReader<OnUpgrade>,
 ) {
     for msg in msg_reader.read() {
-        info!("Upgrade effect");
         let upgrade = gamestate.upgrades.get(&msg.0.0.clone()).unwrap();
         let cost = (upgrade.cost)(upgrade.level);
         if score.0 >= cost {
@@ -132,7 +141,6 @@ fn upgrade_effect(
 }
 
 fn setup_currency(mut commands: Commands) {
-    info!("Setting up currency ui");
     commands.spawn((
         CurrencyText,
         Node {
@@ -158,7 +166,6 @@ fn update_upgrade_cost(mut query: Query<(&mut Text, &UpgradeCost)>, gamestate: R
         let cost = (gamestate.upgrades.get(&cost.0.0).unwrap().cost)(
             gamestate.upgrades.get(&cost.0.0).unwrap().level,
         );
-        info!(cost);
         *text = Text::new(format!("Cost: {}", cost));
     }
 }
@@ -183,7 +190,6 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
         ..default()
     });
     for (id, upgrade) in gamestate.upgrades.iter() {
-        info!("{}", &id);
         let cost = (upgrade.cost)(upgrade.level);
         canvas.with_children(|b| {
             b.spawn((

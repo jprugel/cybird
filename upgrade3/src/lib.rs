@@ -19,6 +19,8 @@ impl Plugin<Upgrades> for Upgrade3 {
         ctx.register(Upgrade {
             name: "Crumble Decintigrator".to_string(),
             level: 0,
+            order: 3,
+            criteria: 100,
             cost: |level| level * 100 + 1,
             effect: |level| level * 10 + 1,
         });
@@ -26,6 +28,8 @@ impl Plugin<Upgrades> for Upgrade3 {
         ctx.register(Upgrade {
             name: "Uber Oven".to_string(),
             level: 0,
+            order: 4,
+            criteria: 1000,
             cost: |level| level * level,
             effect: |level| level * level,
         });
