@@ -24,6 +24,7 @@ impl PluginLoader {
 #[derive(Resource)]
 pub struct GameState {
     upgrades: Upgrades,
+    stage: u32,
 }
 
 #[derive(Component)]
@@ -48,7 +49,10 @@ impl Default for GameState {
     fn default() -> Self {
         let map = Upgrades::default();
 
-        Self { upgrades: map }
+        Self {
+            upgrades: map,
+            stage: 0,
+        }
     }
 }
 
@@ -56,6 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_message::<OnClick>()
+        .add_message::<OnStage>()
         .add_message::<OnUpgrade>()
         .add_message::<Transaction>()
         .init_resource::<InputFocus>()
@@ -75,9 +80,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_systems(Startup, plugin_loader)
         .add_systems(Update, update_view)
         .add_systems(Update, upgrade_effect)
+        .add_systems(Update, upgrade_gamestage)
+        .add_systems(Update, stage_handler)
         .run();
 
     Ok(())
+}
+
+#[derive(Message)]
+struct OnStage(u32);
+
+fn stage_handler(
+    score: Res<Score>,
+    mut gamestate: ResMut<GameState>,
+    mut message_writer: MessageWriter<OnStage>,
+) {
+    if score.0 >= 100 && gamestate.stage == 0 {
+        gamestate.stage += 1;
+        message_writer.write(OnStage(1));
+    }
+    if score.0 >= 1000 && gamestate.stage == 1 {
+        gamestate.stage += 1;
+        message_writer.write(OnStage(2));
+    }
+    if score.0 >= 10000 && gamestate.stage == 2 {
+        gamestate.stage += 1;
+        message_writer.write(OnStage(3));
+    }
+    if score.0 >= 100000 && gamestate.stage == 3 {
+        gamestate.stage += 1;
+        message_writer.write(OnStage(4));
+    }
 }
 
 fn plugin_loader(mut gamestate: ResMut<GameState>, mut plugin_loader: ResMut<PluginLoader>) {
@@ -87,6 +120,16 @@ fn plugin_loader(mut gamestate: ResMut<GameState>, mut plugin_loader: ResMut<Plu
         &mut plugin_loader,
     )
     .expect("Failed to load plugin");
+}
+
+fn upgrade_gamestage(gamestate: Res<GameState>, mut query: Query<(&mut Visibility, &UpgradeId)>) {
+    for (mut visibility, upgrade_id) in query.iter_mut() {
+        if let Some(Upgrade { stage, .. }) = gamestate.upgrades.get(&upgrade_id.0) {
+            if *stage == gamestate.stage {
+                *visibility = Visibility::Visible;
+            }
+        }
+    }
 }
 
 fn register_upgrades(mut gamestate: ResMut<GameState>) {
@@ -187,6 +230,7 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
         let cost = (upgrade.cost)(upgrade.level);
         canvas.with_children(|b| {
             b.spawn((
+                Visibility::Hidden,
                 UpgradeId(id.clone()),
                 UpgradeButton,
                 Button,
