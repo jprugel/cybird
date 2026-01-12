@@ -17,18 +17,19 @@ impl Plugin<Upgrades> for Upgrade3 {
     fn load(&self, ctx: &mut Upgrades) -> Result<()> {
         println!("Loading Upgrade3 plugin...");
         ctx.register(Upgrade {
-            name: "Upgrade3".to_string(),
+            name: "Crumble Decintigrator".to_string(),
             level: 0,
             cost: |level| level * 100 + 1,
             effect: |level| level * 10 + 1,
         });
 
         ctx.register(Upgrade {
-            name: "Upgrade4".to_string(),
+            name: "Uber Oven".to_string(),
             level: 0,
             cost: |level| level * level,
             effect: |level| level * level,
         });
+
         println!("Loading Upgrade3 Plugin end...");
         Ok(())
     }

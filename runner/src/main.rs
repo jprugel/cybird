@@ -86,22 +86,19 @@ fn plugin_loader(mut gamestate: ResMut<GameState>, mut plugin_loader: ResMut<Plu
         &mut gamestate,
         &mut plugin_loader,
     )
-    .unwrap();
-    let x = (gamestate.upgrades.get("Upgrade3").unwrap().cost)(10);
-    println!("Cost of Upgrade3 at level 10: {}", x);
-    println!("loader completed: {:?}", gamestate.upgrades);
+    .expect("Failed to load plugin");
 }
 
 fn register_upgrades(mut gamestate: ResMut<GameState>) {
     gamestate.upgrades.register(Upgrade {
-        name: "Upgrade 1".to_string(),
+        name: "Cookie Recycler".to_string(),
         level: 0,
         cost: |level| level * 2 + 1,
         effect: |level| level,
     });
 
     gamestate.upgrades.register(Upgrade {
-        name: "Upgrade 2".to_string(),
+        name: "Cookie Accelerator".to_string(),
         level: 0,
         cost: |level| level * 10 + 10,
         effect: |level| level * 2,
@@ -194,7 +191,7 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
                 UpgradeButton,
                 Button,
                 Node {
-                    width: px(200),
+                    width: px(400),
                     height: px(100),
                     border: UiRect::all(px(5)),
                     // horizontally center child text
@@ -204,7 +201,7 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
                     ..default()
                 },
                 BorderColor::all(Color::WHITE),
-                BorderRadius::MAX,
+                BorderRadius::all(px(5)),
                 BackgroundColor(Color::BLACK),
                 children![
                     (
@@ -223,7 +220,16 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
                     ),
                     (
                         Text::new(format!("Level: {}", upgrade.level)),
-                        UpgradeLevel(UpgradeId(id.clone()))
+                        UpgradeLevel(UpgradeId(id.clone())),
+                        Node {
+                            border: UiRect::all(px(2)),
+                            // horizontally center child text
+                            justify_content: JustifyContent::Center,
+                            // vertically center child text
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+                        BorderColor::all(Color::WHITE),
                     )
                 ],
             ));
