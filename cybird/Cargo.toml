@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 cybird-macro = { path = "../cybird-macro" }
+libloading = "0.9.0"

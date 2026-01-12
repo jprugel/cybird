@@ -13,7 +13,7 @@ enum Transaction {
 }
 
 #[derive(Resource, Default)]
-struct PluginLoader(Vec<libloading::Library>);
+struct PluginLoader(pub Vec<libloading::Library>);
 
 impl PluginLoader {
     fn add(&mut self, lib: libloading::Library) {
@@ -24,7 +24,6 @@ impl PluginLoader {
 #[derive(Resource)]
 pub struct GameState {
     upgrades: Upgrades,
-    stage: u32,
 }
 
 #[derive(Component)]
@@ -49,10 +48,7 @@ impl Default for GameState {
     fn default() -> Self {
         let map = Upgrades::default();
 
-        Self {
-            upgrades: map,
-            stage: 0,
-        }
+        Self { upgrades: map }
     }
 }
 
