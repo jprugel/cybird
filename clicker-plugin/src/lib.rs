@@ -4,8 +4,7 @@ pub struct Upgrade {
     pub name: String,
     pub level: u32,
 
-    pub criteria: u32,
-    pub order: u32,
+    pub stage: u32,
     pub cost: fn(u32) -> u32,
     pub effect: fn(u32) -> u32,
 }

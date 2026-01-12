@@ -94,8 +94,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         name: "Cookie Recycler".to_string(),
         level: 0,
 
-        order: 1,
-        criteria: 0,
+        stage: 1,
         cost: |level| level * 2 + 1,
         effect: |level| level,
     });
@@ -104,8 +103,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         name: "Cookie Accelerator".to_string(),
         level: 0,
 
-        order: 2,
-        criteria: 10,
+        stage: 2,
         cost: |level| level * 10 + 10,
         effect: |level| level * 2,
     });
