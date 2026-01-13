@@ -6,8 +6,28 @@ pub struct Upgrade {
 
     pub stage: u32,
     pub cost: fn(u32) -> u32,
-    pub effect: fn(u32) -> u32,
+
+    // Effect needs to be a bit more complex i think
+    pub effects: Vec<Effect>,
 }
+
+#[derive(PartialEq, Eq)]
+pub enum EffectTrigger {
+    Click,
+}
+
+pub enum EffectValue {
+    Add(fn(u32) -> u32),
+    Multiply(fn(u32) -> u32),
+    Prestige,
+}
+
+pub struct Effect {
+    pub trigger: EffectTrigger,
+    pub value: EffectValue,
+}
+
+// effect needs work so we can implement UpgradeType::Click, UpgradeType::Tick, UpgradeType::Prestige
 
 impl std::fmt::Debug for Upgrade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,5 +60,9 @@ impl Upgrades {
 
     pub fn values(&self) -> impl Iterator<Item = &Upgrade> {
         self.0.values()
+    }
+
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Upgrade> {
+        self.0.values_mut()
     }
 }

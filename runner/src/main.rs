@@ -77,15 +77,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_message::<OnStage>()
         .add_message::<OnUpgrade>()
         .add_message::<Transaction>()
+        .add_message::<Prestige>()
         .init_resource::<InputFocus>()
         .init_resource::<GameState>()
         .init_resource::<Score>()
         .init_resource::<PluginLoader>()
+        .init_resource::<PrestigeMulti>()
         .add_systems(Startup, setup)
         .add_systems(Startup, register_upgrades)
         .add_systems(Update, score_handler)
         .add_systems(Update, update_upgrade_cost)
         .add_systems(Update, update_upgrade_level)
+        .add_systems(Update, prestige_system)
         .add_systems(Startup, setup_currency)
         .add_systems(Update, button_system)
         .add_systems(Update, increase_score)
@@ -99,6 +102,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run();
 
     Ok(())
+}
+
+#[derive(Resource)]
+struct PrestigeMulti(f32);
+
+impl Default for PrestigeMulti {
+    fn default() -> Self {
+        PrestigeMulti(1.0)
+    }
 }
 
 #[derive(Message)]
@@ -124,6 +136,10 @@ fn stage_handler(
     if score.0 >= 10000 && gamestate.stage == 3 {
         gamestate.stage += 1;
         message_writer.write(OnStage(4));
+    }
+    if score.0 >= 100000 && gamestate.stage == 4 {
+        gamestate.stage += 1;
+        message_writer.write(OnStage(5));
     }
 }
 
@@ -153,7 +169,10 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
 
         stage: 1,
         cost: |level| level * 2 + 1,
-        effect: |level| level,
+        effects: vec![Effect {
+            trigger: EffectTrigger::Click,
+            value: EffectValue::Add(|level| level),
+        }],
     });
 
     gamestate.upgrades.register(Upgrade {
@@ -162,7 +181,22 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
 
         stage: 2,
         cost: |level| level * 10 + 10,
-        effect: |level| level * 2,
+        effects: vec![Effect {
+            trigger: EffectTrigger::Click,
+            value: EffectValue::Add(|level| level * 10),
+        }],
+    });
+
+    gamestate.upgrades.register(Upgrade {
+        name: "Cookie Prestige".to_string(),
+        level: 0,
+
+        stage: 5,
+        cost: |_| 100_000,
+        effects: vec![Effect {
+            trigger: EffectTrigger::Click,
+            value: EffectValue::Prestige,
+        }],
     });
 }
 
@@ -295,19 +329,52 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
     }
 }
 
+fn prestige_system(
+    mut prestige_reader: MessageReader<Prestige>,
+    mut score: ResMut<Score>,
+    mut gamestate: ResMut<GameState>,
+    mut prestige_multi: ResMut<PrestigeMulti>,
+) {
+    for level in prestige_reader.read() {
+        if level.0 <= 0 {
+            return;
+        }
+        score.0 = 0;
+        for upgrade in gamestate.upgrades.values_mut() {
+            upgrade.level = 0;
+        }
+        prestige_multi.0 += 0.25;
+    }
+}
+
+#[derive(Message)]
+struct Prestige(u32);
+
 fn increase_score(
     gamestate: ResMut<GameState>,
+    prestige_multi: Res<PrestigeMulti>,
     mut message_reader: MessageReader<OnClick>,
     mut message_writer: MessageWriter<Transaction>,
+    mut prestige_writer: MessageWriter<Prestige>,
 ) {
     for _ in message_reader.read() {
-        info!("Score increased");
-        let acc = gamestate
-            .upgrades
-            .values()
-            .fold(0, |acc, upgrade| acc + (upgrade.effect)(upgrade.level));
-
-        message_writer.write(Transaction::Increase(acc));
+        let mut value = 1;
+        for upgrade in gamestate.upgrades.values() {
+            for effect in &upgrade.effects {
+                if effect.trigger == EffectTrigger::Click {
+                    match effect.value {
+                        EffectValue::Add(v) => {
+                            value += (v)((upgrade.level as f32 * prestige_multi.0) as u32);
+                        }
+                        EffectValue::Prestige => {
+                            prestige_writer.write(Prestige(upgrade.level));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        message_writer.write(Transaction::Increase(value));
     }
 }
 

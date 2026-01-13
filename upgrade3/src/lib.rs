@@ -21,15 +21,21 @@ impl Plugin<Upgrades> for Upgrade3 {
             level: 0,
             stage: 3,
             cost: |level| level * 100 + 1,
-            effect: |level| level * 10 + 1,
+            effects: vec![Effect {
+                trigger: EffectTrigger::Click,
+                value: EffectValue::Add(|level| level * 100),
+            }],
         });
 
         ctx.register(Upgrade {
             name: "Uber Oven".to_string(),
             level: 0,
             stage: 4,
-            cost: |level| level * level,
-            effect: |level| level * level,
+            cost: |level| level * level + 100,
+            effects: vec![Effect {
+                trigger: EffectTrigger::Click,
+                value: EffectValue::Add(|level| level * level),
+            }],
         });
 
         println!("Loading Upgrade3 Plugin end...");
