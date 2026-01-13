@@ -6,6 +6,7 @@ pub struct Upgrade {
 
     pub stage: u32,
     pub cost: fn(u32) -> u32,
+    pub description: String,
 
     // Effect needs to be a bit more complex i think
     pub effects: Vec<Effect>,

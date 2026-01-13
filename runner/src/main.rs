@@ -167,6 +167,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         name: "Cookie Recycler".to_string(),
         level: 0,
 
+        description: "Increase cookie click yield by 1 per level.".to_string(),
         stage: 1,
         cost: |level| level * 2 + 1,
         effects: vec![Effect {
@@ -179,6 +180,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         name: "Cookie Accelerator".to_string(),
         level: 0,
 
+        description: "Increase cookie click yield by 10 per level.".to_string(),
         stage: 2,
         cost: |level| level * 10 + 10,
         effects: vec![Effect {
@@ -193,6 +195,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
 
         stage: 5,
         cost: |_| 100_000,
+        description: "Increases all yields by 2x".to_string(),
         effects: vec![Effect {
             trigger: EffectTrigger::Click,
             value: EffectValue::Prestige,
@@ -339,11 +342,12 @@ fn prestige_system(
         if level.0 <= 0 {
             return;
         }
+        info!("Prestige level: {}", level.0);
         score.0 = 0;
         for upgrade in gamestate.upgrades.values_mut() {
             upgrade.level = 0;
         }
-        prestige_multi.0 += 0.25;
+        prestige_multi.0 += 2.;
     }
 }
 
@@ -367,6 +371,7 @@ fn increase_score(
                             value += (v)((upgrade.level as f32 * prestige_multi.0) as u32);
                         }
                         EffectValue::Prestige => {
+                            info!("Prestige button pressed!");
                             prestige_writer.write(Prestige(upgrade.level));
                         }
                         _ => {}
