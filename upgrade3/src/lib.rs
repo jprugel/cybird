@@ -21,6 +21,7 @@ impl Plugin<Upgrades> for Upgrade3 {
             level: 0,
             stage: 3,
             cost: |level| level * 100 + 1,
+            effect_type: EffectType::Additive,
             description: "Increase cookie click yield by 100 per level.".to_string(),
             effects: vec![Effect {
                 trigger: EffectTrigger::Click,
@@ -34,6 +35,7 @@ impl Plugin<Upgrades> for Upgrade3 {
             stage: 4,
             cost: |level| level * level + 100,
             description: "Increase cookie click yield by level^2 per level.".to_string(),
+            effect_type: EffectType::Additive,
             effects: vec![Effect {
                 trigger: EffectTrigger::Click,
                 value: EffectValue::Add(|level| level * level),

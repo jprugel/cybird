@@ -82,7 +82,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init_resource::<GameState>()
         .init_resource::<Score>()
         .init_resource::<PluginLoader>()
-        .init_resource::<PrestigeMulti>()
         .add_systems(Startup, setup)
         .add_systems(Startup, register_upgrades)
         .add_systems(Update, score_handler)
@@ -102,15 +101,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .run();
 
     Ok(())
-}
-
-#[derive(Resource)]
-struct PrestigeMulti(f32);
-
-impl Default for PrestigeMulti {
-    fn default() -> Self {
-        PrestigeMulti(1.0)
-    }
 }
 
 #[derive(Message)]
@@ -170,6 +160,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         description: "Increase cookie click yield by 1 per level.".to_string(),
         stage: 1,
         cost: |level| level * 2 + 1,
+        effect_type: EffectType::Additive,
         effects: vec![Effect {
             trigger: EffectTrigger::Click,
             value: EffectValue::Add(|level| level),
@@ -182,6 +173,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
 
         description: "Increase cookie click yield by 10 per level.".to_string(),
         stage: 2,
+        effect_type: EffectType::Additive,
         cost: |level| level * 10 + 10,
         effects: vec![Effect {
             trigger: EffectTrigger::Click,
@@ -196,9 +188,10 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         stage: 5,
         cost: |_| 100_000,
         description: "Increases all yields by 2x".to_string(),
+        effect_type: EffectType::Multiplicative,
         effects: vec![Effect {
             trigger: EffectTrigger::Click,
-            value: EffectValue::Prestige,
+            value: EffectValue::Multiply(|level| level.min(1) * 2),
         }],
     });
 }
@@ -217,6 +210,7 @@ fn upgrade_effect(
     score: Res<Score>,
     mut message_writer: MessageWriter<Transaction>,
     mut msg_reader: MessageReader<OnUpgrade>,
+    mut prestige_writer: MessageWriter<Prestige>,
 ) {
     for msg in msg_reader.read() {
         let upgrade = gamestate.upgrades.get(&msg.0.0.clone()).unwrap();
@@ -332,22 +326,26 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
     }
 }
 
+// This is where we handle the prestige system.
 fn prestige_system(
     mut prestige_reader: MessageReader<Prestige>,
     mut score: ResMut<Score>,
     mut gamestate: ResMut<GameState>,
-    mut prestige_multi: ResMut<PrestigeMulti>,
 ) {
     for level in prestige_reader.read() {
-        if level.0 <= 0 {
-            return;
+        let prestige_upgrade = gamestate.upgrades.get_mut("Cookie Prestige");
+        if let Some(upgrade) = prestige_upgrade {
+            if level.0 <= 0 {
+                return;
+            }
+            upgrade.level = level.0;
+            info!("Prestige level: {}", level.0);
+            score.0 = 0;
+            for upgrade in gamestate.upgrades.values_mut() {
+                upgrade.level = 0;
+            }
+            // prestige_multi.0 += 2.;
         }
-        info!("Prestige level: {}", level.0);
-        score.0 = 0;
-        for upgrade in gamestate.upgrades.values_mut() {
-            upgrade.level = 0;
-        }
-        prestige_multi.0 += 2.;
     }
 }
 
@@ -356,30 +354,48 @@ struct Prestige(u32);
 
 fn increase_score(
     gamestate: ResMut<GameState>,
-    prestige_multi: Res<PrestigeMulti>,
     mut message_reader: MessageReader<OnClick>,
     mut message_writer: MessageWriter<Transaction>,
-    mut prestige_writer: MessageWriter<Prestige>,
 ) {
     for _ in message_reader.read() {
-        let mut value = 1;
-        for upgrade in gamestate.upgrades.values() {
-            for effect in &upgrade.effects {
-                if effect.trigger == EffectTrigger::Click {
-                    match effect.value {
-                        EffectValue::Add(v) => {
-                            value += (v)((upgrade.level as f32 * prestige_multi.0) as u32);
-                        }
-                        EffectValue::Prestige => {
-                            info!("Prestige button pressed!");
-                            prestige_writer.write(Prestige(upgrade.level));
-                        }
-                        _ => {}
-                    }
+        let base_rate = gamestate
+            .upgrades
+            .values()
+            .filter(|upgrade| upgrade.effect_type == EffectType::Additive)
+            .fold(1, |acc, upgrade| {
+                if let EffectValue::Add(f) = upgrade.effects[0].value {
+                    acc + f(upgrade.level)
+                } else {
+                    acc
                 }
-            }
+            });
+
+        info!("Base rate: {}", base_rate);
+        info!(
+            "Upgrades: {:?}",
+            gamestate.upgrades.values().collect::<Vec<_>>()
+        );
+
+        let mut rate = base_rate as f32
+            * gamestate
+                .upgrades
+                .values()
+                .filter(|upgrade| upgrade.effect_type == EffectType::Multiplicative)
+                .fold(1., |acc, upgrade| {
+                    if let EffectValue::Multiply(f) = upgrade.effects[0].value {
+                        acc * f(upgrade.level) as f32
+                    } else {
+                        acc
+                    }
+                });
+
+        info!("Rate: {}", rate);
+
+        if base_rate > rate as u32 {
+            rate = base_rate as f32;
         }
-        message_writer.write(Transaction::Increase(value));
+
+        let _ = message_writer.write(Transaction::Increase(rate as u32));
     }
 }
 
