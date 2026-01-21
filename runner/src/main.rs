@@ -2,25 +2,11 @@ use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use clicker_plugin::*;
-use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
 #[derive(Resource /* Default */, Reflect)]
 struct Score(u32);
-
-struct UpgradeProcessor(HashMap<u32, Vec<Upgrade>>);
-
-impl UpgradeProcessor {
-    fn new(upgrades: Vec<Upgrade>) -> Self {
-        let mut map = HashMap::new();
-        for upgrade in upgrades {
-            let stage = upgrade.stage;
-            map.entry(stage).or_insert_with(Vec::new).push(upgrade);
-        }
-        Self(map)
-    }
-}
 
 #[derive(Message)]
 enum Transaction {
@@ -110,7 +96,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Message)]
-struct OnStage(u32);
+struct OnStage;
 
 impl Default for Score {
     fn default() -> Self {
@@ -125,23 +111,23 @@ fn stage_handler(
 ) {
     if score.0 >= 10 && gamestate.stage == 0 {
         gamestate.stage += 1;
-        message_writer.write(OnStage(1));
+        message_writer.write(OnStage);
     }
     if score.0 >= 100 && gamestate.stage == 1 {
         gamestate.stage += 1;
-        message_writer.write(OnStage(2));
+        message_writer.write(OnStage);
     }
     if score.0 >= 1000 && gamestate.stage == 2 {
         gamestate.stage += 1;
-        message_writer.write(OnStage(3));
+        message_writer.write(OnStage);
     }
     if score.0 >= 10000 && gamestate.stage == 3 {
         gamestate.stage += 1;
-        message_writer.write(OnStage(4));
+        message_writer.write(OnStage);
     }
     if score.0 >= 100000 && gamestate.stage == 4 {
         gamestate.stage += 1;
-        message_writer.write(OnStage(5));
+        message_writer.write(OnStage);
     }
 }
 
@@ -246,7 +232,7 @@ fn upgrade_effect(
             .collect::<Vec<_>>();
         if upgrade_effect.len() >= 1 {
             info!("Prestige found");
-            prestige_writer.write(Prestige(upgrade.level));
+            prestige_writer.write(Prestige);
         }
         if score.0 >= cost {
             message_writer.write(Transaction::Decrease(cost));
@@ -336,7 +322,7 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
             .then((a.cost)(a.level).cmp(&(b.cost)(b.level)))
     });
 
-    for (upgrade) in upgrades {
+    for upgrade in upgrades {
         let cost = (upgrade.cost)(upgrade.level);
         canvas.with_children(|b| {
             b.spawn((
@@ -392,7 +378,7 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
 }
 
 #[derive(Message)]
-struct Prestige(u32);
+struct Prestige;
 
 fn increase_score(
     gamestate: ResMut<GameState>,
