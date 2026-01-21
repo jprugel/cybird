@@ -1,4 +1,5 @@
 use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
+use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use clicker_plugin::*;
 use std::collections::HashMap;
@@ -76,6 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(DefaultPlugins)
         .add_plugins(EguiPlugin::default())
         .add_plugins(WorldInspectorPlugin::new())
+        .add_plugins(ResourceInspectorPlugin::<Score>::default())
         .add_message::<OnClick>()
         .add_message::<OnStage>()
         .add_message::<OnUpgrade>()
@@ -202,7 +204,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         effects: vec![
             Effect {
                 trigger: EffectTrigger::Click,
-                value: EffectValue::Multiply(|level| level.min(1) * 2),
+                value: EffectValue::Multiply(|level| level * 2),
             },
             Effect {
                 trigger: EffectTrigger::Click,
@@ -422,6 +424,7 @@ fn increase_score(
                 .values()
                 .filter(|upgrade| upgrade.effect_type == EffectType::Multiplicative)
                 .fold(1., |acc, upgrade| {
+                    info!("Upgrade: {:?}", upgrade);
                     if let EffectValue::Multiply(f) = upgrade.effects[0].value {
                         acc * f(upgrade.level) as f32
                     } else {
