@@ -1,10 +1,11 @@
 use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
+use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use clicker_plugin::*;
 use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
-#[derive(Resource /* Default */)]
+#[derive(Resource /* Default */, Reflect)]
 struct Score(u32);
 
 struct UpgradeProcessor(HashMap<u32, Vec<Upgrade>>);
@@ -73,6 +74,8 @@ impl Default for GameState {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(EguiPlugin::default())
+        .add_plugins(WorldInspectorPlugin::new())
         .add_message::<OnClick>()
         .add_message::<OnStage>()
         .add_message::<OnUpgrade>()
@@ -240,7 +243,7 @@ fn upgrade_effect(
             .collect::<Vec<_>>();
         if upgrade_effect.len() >= 1 {
             info!("Prestige found");
-            prestige_writer.write(Prestige(1));
+            prestige_writer.write(Prestige(upgrade.level));
         }
         if score.0 >= cost {
             message_writer.write(Transaction::Decrease(cost));
@@ -346,10 +349,10 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
                     justify_content: JustifyContent::Center,
                     // vertically center child text
                     align_items: AlignItems::Center,
+                    border_radius: BorderRadius::all(px(5)),
                     ..default()
                 },
                 BorderColor::all(Color::WHITE),
-                BorderRadius::all(px(5)),
                 BackgroundColor(Color::BLACK),
                 children![
                     (
@@ -571,10 +574,10 @@ fn button() -> impl Bundle {
                 justify_content: JustifyContent::Center,
                 // vertically center child text
                 align_items: AlignItems::Center,
+                border_radius: BorderRadius::all(px(5)),
                 ..default()
             },
             BorderColor::all(Color::WHITE),
-            BorderRadius::MAX,
             BackgroundColor(Color::BLACK),
             children![(
                 ButtonText,
