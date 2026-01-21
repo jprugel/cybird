@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
-#[derive(Resource, Default)]
+#[derive(Resource /* Default */)]
 struct Score(u32);
 
 struct UpgradeProcessor(HashMap<u32, Vec<Upgrade>>);
@@ -87,7 +87,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_systems(Update, score_handler)
         .add_systems(Update, update_upgrade_cost)
         .add_systems(Update, update_upgrade_level)
-        .add_systems(Update, prestige_system)
         .add_systems(Startup, setup_currency)
         .add_systems(Update, button_system)
         .add_systems(Update, increase_score)
@@ -98,6 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_systems(Update, upgrade_effect)
         .add_systems(Update, upgrade_gamestage)
         .add_systems(Update, stage_handler)
+        .add_systems(Update, handle_prestige)
         .run();
 
     Ok(())
@@ -105,6 +105,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(Message)]
 struct OnStage(u32);
+
+impl Default for Score {
+    fn default() -> Self {
+        Score(10_000)
+    }
+}
 
 fn stage_handler(
     score: Res<Score>,
@@ -215,9 +221,36 @@ fn upgrade_effect(
     for msg in msg_reader.read() {
         let upgrade = gamestate.upgrades.get(&msg.0.0.clone()).unwrap();
         let cost = (upgrade.cost)(upgrade.level);
+        let upgrade_effect = upgrade
+            .effects
+            .iter()
+            .filter(|effect| matches!(effect.value, EffectValue::Prestige))
+            .collect::<Vec<_>>();
+        if upgrade_effect.len() >= 1 {
+            info!("Prestige found");
+            prestige_writer.write(Prestige(1));
+        }
         if score.0 >= cost {
             message_writer.write(Transaction::Decrease(cost));
             gamestate.upgrades.get_mut(&msg.0.0.clone()).unwrap().level += 1;
+        }
+    }
+}
+
+fn handle_prestige(
+    mut gamestate: ResMut<GameState>,
+    mut message_reader: MessageReader<Prestige>,
+    mut score: ResMut<Score>,
+) {
+    for msg in message_reader.read() {
+        score.0 = 0;
+        info!("Prestige triggered");
+
+        for upgrade in gamestate.upgrades.values_mut() {
+            if upgrade.name == "Cookie Prestige" {
+                return;
+            }
+            upgrade.level = 0;
         }
     }
 }
@@ -323,29 +356,6 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
                 ],
             ));
         });
-    }
-}
-
-// This is where we handle the prestige system.
-fn prestige_system(
-    mut prestige_reader: MessageReader<Prestige>,
-    mut score: ResMut<Score>,
-    mut gamestate: ResMut<GameState>,
-) {
-    for level in prestige_reader.read() {
-        let prestige_upgrade = gamestate.upgrades.get_mut("Cookie Prestige");
-        if let Some(upgrade) = prestige_upgrade {
-            if level.0 <= 0 {
-                return;
-            }
-            upgrade.level = level.0;
-            info!("Prestige level: {}", level.0);
-            score.0 = 0;
-            for upgrade in gamestate.upgrades.values_mut() {
-                upgrade.level = 0;
-            }
-            // prestige_multi.0 += 2.;
-        }
     }
 }
 
