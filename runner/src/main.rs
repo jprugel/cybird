@@ -108,7 +108,7 @@ struct OnStage(u32);
 
 impl Default for Score {
     fn default() -> Self {
-        Score(10_000)
+        Score(0)
     }
 }
 
@@ -195,10 +195,16 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         cost: |_| 100_000,
         description: "Increases all yields by 2x".to_string(),
         effect_type: EffectType::Multiplicative,
-        effects: vec![Effect {
-            trigger: EffectTrigger::Click,
-            value: EffectValue::Multiply(|level| level.min(1) * 2),
-        }],
+        effects: vec![
+            Effect {
+                trigger: EffectTrigger::Click,
+                value: EffectValue::Multiply(|level| level.min(1) * 2),
+            },
+            Effect {
+                trigger: EffectTrigger::Click,
+                value: EffectValue::Prestige,
+            },
+        ],
     });
 }
 
@@ -206,7 +212,13 @@ fn score_handler(mut score: ResMut<Score>, mut message_reader: MessageReader<Tra
     for msg in message_reader.read() {
         match msg {
             Transaction::Increase(amount) => score.0 += amount,
-            Transaction::Decrease(amount) => score.0 -= amount,
+            Transaction::Decrease(amount) => {
+                if score.0 >= *amount {
+                    score.0 -= amount;
+                } else {
+                    score.0 = 0;
+                }
+            }
         }
     }
 }
@@ -242,14 +254,15 @@ fn handle_prestige(
     mut message_reader: MessageReader<Prestige>,
     mut score: ResMut<Score>,
 ) {
-    for msg in message_reader.read() {
+    for _ in message_reader.read() {
         score.0 = 0;
         info!("Prestige triggered");
 
         for upgrade in gamestate.upgrades.values_mut() {
             if upgrade.name == "Cookie Prestige" {
-                return;
+                continue;
             }
+            info!("Resetting upgrades!");
             upgrade.level = 0;
         }
     }
@@ -304,12 +317,25 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
         justify_content: JustifyContent::FlexStart,
         ..default()
     });
-    for (id, upgrade) in gamestate.upgrades.iter() {
+
+    let mut upgrades = gamestate
+        .upgrades
+        .values()
+        .into_iter()
+        .collect::<Vec<&Upgrade>>();
+
+    upgrades.sort_by(|a, b| {
+        a.stage
+            .cmp(&b.stage)
+            .then((a.cost)(a.level).cmp(&(b.cost)(b.level)))
+    });
+
+    for (upgrade) in upgrades {
         let cost = (upgrade.cost)(upgrade.level);
         canvas.with_children(|b| {
             b.spawn((
                 Visibility::Hidden,
-                UpgradeId(id.clone()),
+                UpgradeId(upgrade.name.clone()),
                 UpgradeButton,
                 Button,
                 Node {
@@ -338,11 +364,11 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
                     ),
                     (
                         Text::new(format!("Cost: {}", cost)),
-                        UpgradeCost(UpgradeId(id.clone()))
+                        UpgradeCost(UpgradeId(upgrade.name.clone()))
                     ),
                     (
                         Text::new(format!("Level: {}", upgrade.level)),
-                        UpgradeLevel(UpgradeId(id.clone())),
+                        UpgradeLevel(UpgradeId(upgrade.name.clone())),
                         Node {
                             border: UiRect::all(px(2)),
                             // horizontally center child text
