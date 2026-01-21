@@ -85,6 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init_resource::<GameState>()
         .init_resource::<Score>()
         .init_resource::<PluginLoader>()
+        .register_type::<Score>()
         .add_systems(Startup, setup)
         .add_systems(Startup, register_upgrades)
         .add_systems(Update, score_handler)
