@@ -5,7 +5,7 @@ use cybird::*;
 #[derive(Default)]
 pub struct Upgrade3;
 
-impl Plugin<Upgrades> for Upgrade3 {
+impl Plugin<PluginContext> for Upgrade3 {
     fn author(&self) -> &str {
         "jprugel"
     }
@@ -14,7 +14,7 @@ impl Plugin<Upgrades> for Upgrade3 {
         "upgrade3"
     }
 
-    fn load(&self, ctx: &mut Upgrades) -> Result<()> {
+    fn load(&self, ctx: &mut PluginContext) -> Result<()> {
         println!("Loading Upgrade3 plugin...");
         ctx.register(Upgrade {
             name: "Crumble Decintigrator".to_string(),

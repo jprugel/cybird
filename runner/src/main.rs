@@ -25,7 +25,7 @@ impl PluginLoader {
 
 #[derive(Resource)]
 pub struct GameState {
-    upgrades: Upgrades,
+    context: PluginContext,
     stage: u32,
 }
 
@@ -49,10 +49,10 @@ struct CurrencyText;
 
 impl Default for GameState {
     fn default() -> Self {
-        let map = Upgrades::default();
+        let map = PluginContext::default();
 
         Self {
-            upgrades: map,
+            context: map,
             stage: 0,
         }
     }
@@ -142,7 +142,12 @@ fn plugin_loader(mut gamestate: ResMut<GameState>, mut plugin_loader: ResMut<Plu
 
 fn upgrade_gamestage(gamestate: Res<GameState>, mut query: Query<(&mut Visibility, &UpgradeId)>) {
     for (mut visibility, upgrade_id) in query.iter_mut() {
-        if let Some(Upgrade { stage, .. }) = gamestate.upgrades.get(&upgrade_id.0) {
+        if let Some(Upgrade { stage, .. }) = gamestate
+            .context
+            .get_registrables::<Upgrade>()
+            .iter()
+            .find(|u| u.name == *upgrade_id.0)
+        {
             if *stage == gamestate.stage {
                 *visibility = Visibility::Visible;
             }
@@ -151,7 +156,7 @@ fn upgrade_gamestage(gamestate: Res<GameState>, mut query: Query<(&mut Visibilit
 }
 
 fn register_upgrades(mut gamestate: ResMut<GameState>) {
-    gamestate.upgrades.register(Upgrade {
+    gamestate.context.register(Upgrade {
         name: "Cookie Recycler".to_string(),
         level: 0,
 
@@ -165,7 +170,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         }],
     });
 
-    gamestate.upgrades.register(Upgrade {
+    gamestate.context.register(Upgrade {
         name: "Cookie Accelerator".to_string(),
         level: 0,
 
@@ -179,7 +184,7 @@ fn register_upgrades(mut gamestate: ResMut<GameState>) {
         }],
     });
 
-    gamestate.upgrades.register(Upgrade {
+    gamestate.context.register(Upgrade {
         name: "Cookie Prestige".to_string(),
         level: 0,
 
@@ -223,7 +228,8 @@ fn upgrade_effect(
     mut prestige_writer: MessageWriter<Prestige>,
 ) {
     for msg in msg_reader.read() {
-        let upgrade = gamestate.upgrades.get(&msg.0.0.clone()).unwrap();
+        let upgrades = gamestate.context.get_registrables::<Upgrade>();
+        let upgrade = upgrades.iter().find(|x| x.name == msg.0.0).unwrap();
         let cost = (upgrade.cost)(upgrade.level);
         let upgrade_effect = upgrade
             .effects
@@ -236,7 +242,13 @@ fn upgrade_effect(
         }
         if score.0 >= cost {
             message_writer.write(Transaction::Decrease(cost));
-            gamestate.upgrades.get_mut(&msg.0.0.clone()).unwrap().level += 1;
+            gamestate
+                .context
+                .get_registrables_mut::<Upgrade>()
+                .into_iter()
+                .find(|x| x.name == msg.0.0)
+                .unwrap()
+                .level += 1;
         }
     }
 }
@@ -250,7 +262,7 @@ fn handle_prestige(
         score.0 = 0;
         info!("Prestige triggered");
 
-        for upgrade in gamestate.upgrades.values_mut() {
+        for upgrade in gamestate.context.get_registrables_mut::<Upgrade>() {
             if upgrade.name == "Cookie Prestige" {
                 continue;
             }
@@ -283,8 +295,20 @@ struct UpgradeCost(UpgradeId);
 
 fn update_upgrade_cost(mut query: Query<(&mut Text, &UpgradeCost)>, gamestate: ResMut<GameState>) {
     for (mut text, cost) in query.iter_mut() {
-        let cost = (gamestate.upgrades.get(&cost.0.0).unwrap().cost)(
-            gamestate.upgrades.get(&cost.0.0).unwrap().level,
+        let cost = (gamestate
+            .context
+            .get_registrables::<Upgrade>()
+            .iter()
+            .find(|upgrade| upgrade.name == cost.0.0)
+            .unwrap()
+            .cost)(
+            gamestate
+                .context
+                .get_registrables()
+                .iter()
+                .find(|upgrade: &&&Upgrade| upgrade.name == cost.0.0)
+                .unwrap()
+                .level,
         );
         *text = Text::new(format!("Cost: {}", cost));
     }
@@ -295,7 +319,13 @@ fn update_upgrade_level(
     gamestate: ResMut<GameState>,
 ) {
     for (mut text, cost) in query.iter_mut() {
-        let level = gamestate.upgrades.get(&cost.0.0).unwrap().level;
+        let level = gamestate
+            .context
+            .get_registrables::<Upgrade>()
+            .iter()
+            .find(|upgrade| upgrade.name == cost.0.0)
+            .unwrap()
+            .level;
         *text = Text::new(format!("Level: {}", level));
     }
 }
@@ -311,8 +341,8 @@ fn upgrade_view(mut commands: Commands, gamestate: Res<GameState>) {
     });
 
     let mut upgrades = gamestate
-        .upgrades
-        .values()
+        .context
+        .get_registrables::<Upgrade>()
         .into_iter()
         .collect::<Vec<&Upgrade>>();
 
@@ -387,8 +417,9 @@ fn increase_score(
 ) {
     for _ in message_reader.read() {
         let base_rate = gamestate
-            .upgrades
-            .values()
+            .context
+            .get_registrables::<Upgrade>()
+            .iter()
             .filter(|upgrade| upgrade.effect_type == EffectType::Additive)
             .fold(1, |acc, upgrade| {
                 if let EffectValue::Add(f) = upgrade.effects[0].value {
@@ -401,13 +432,18 @@ fn increase_score(
         info!("Base rate: {}", base_rate);
         info!(
             "Upgrades: {:?}",
-            gamestate.upgrades.values().collect::<Vec<_>>()
+            gamestate
+                .context
+                .get_registrables::<Upgrade>()
+                .iter()
+                .collect::<Vec<_>>()
         );
 
         let mut rate = base_rate as f32
             * gamestate
-                .upgrades
-                .values()
+                .context
+                .get_registrables::<Upgrade>()
+                .iter()
                 .filter(|upgrade| upgrade.effect_type == EffectType::Multiplicative)
                 .fold(1., |acc, upgrade| {
                     info!("Upgrade: {:?}", upgrade);
@@ -614,14 +650,14 @@ fn try_load_plugin(
         println!("  Plugin Author: {}", author);
         println!("  Plugin ID: {}", id);
 
-        let result = load_plugin(&mut gamestate.upgrades as *mut Upgrades as *mut std::ffi::c_void);
+        let result =
+            load_plugin(&mut gamestate.context as *mut PluginContext as *mut std::ffi::c_void);
         println!("  Plugin load result: {}", result);
 
         // Free the allocated strings
         free_string(author_ptr as *mut c_char);
         free_string(id_ptr as *mut c_char);
         plugin_loader.add(lib);
-        println!("loader completed: {:?}", gamestate.upgrades);
 
         Ok(())
     }
