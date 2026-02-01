@@ -2,6 +2,7 @@ use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use clicker_plugin::*;
+use cybird::Context;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 

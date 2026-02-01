@@ -1,20 +1,5 @@
+use cybird::{Context, FromRegistrable, FromRegistrableMut};
 use std::collections::HashMap;
-
-pub trait Context {
-    type Registrable;
-
-    fn register<T>(&mut self, registrable: T)
-    where
-        T: Into<Self::Registrable>;
-
-    fn get_registrables<T>(&self) -> Vec<&T>
-    where
-        T: FromRegistrable<Self::Registrable>;
-
-    fn get_registrables_mut<T>(&mut self) -> Vec<&mut T>
-    where
-        T: FromRegistrableMut<Self::Registrable>;
-}
 
 #[derive(Default)]
 pub struct PluginContext(Vec<Registrable>);
@@ -48,14 +33,6 @@ impl Context for PluginContext {
             .filter_map(|registrable| T::from_registrable_mut(registrable))
             .collect()
     }
-}
-
-pub trait FromRegistrable<R> {
-    fn from_registrable(registrable: &R) -> Option<&Self>;
-}
-
-pub trait FromRegistrableMut<R> {
-    fn from_registrable_mut(registrable: &mut R) -> Option<&mut Self>;
 }
 
 pub enum Registrable {
