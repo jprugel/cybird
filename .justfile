@@ -3,7 +3,7 @@
 set shell := ["powershell.exe", "-c"]
 
 build:
-    cargo build --package upgrade3 --features dynamic
+    cargo build --package crazier-crab --features dynamic
 
 run:
-    cargo run --bin runner
+    cargo run --bin crypto-crab

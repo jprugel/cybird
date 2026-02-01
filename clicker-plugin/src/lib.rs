@@ -1,46 +1,13 @@
-use std::collections::HashMap;
+use cybird::{Context, FromRegistrable, FromRegistrableMut, Registrable};
 
-#[derive(Default)]
+#[derive(Default, Context)]
 pub struct PluginContext(Vec<Registrable>);
-
-impl PluginContext {
-    pub fn register<T: Into<Registrable>>(&mut self, registrable: T) {
-        self.0.push(registrable.into());
-    }
-
-    pub fn get_registrables<T>(&self) -> Vec<&T>
-    where
-        T: FromRegistrable,
-    {
-        self.0
-            .iter()
-            .filter_map(|registrable| T::from_registrable(registrable))
-            .collect()
-    }
-
-    pub fn get_registrables_mut<T>(&mut self) -> Vec<&mut T>
-    where
-        T: FromRegistrableMut,
-    {
-        self.0
-            .iter_mut()
-            .filter_map(|registrable| T::from_registrable_mut(registrable))
-            .collect()
-    }
-}
-
-pub trait FromRegistrable {
-    fn from_registrable(registrable: &Registrable) -> Option<&Self>;
-}
-
-pub trait FromRegistrableMut {
-    fn from_registrable_mut(registrable: &mut Registrable) -> Option<&mut Self>;
-}
 
 pub enum Registrable {
     Upgrade(Upgrade),
 }
 
+#[derive(Registrable)]
 pub struct Upgrade {
     pub name: String,
     pub level: u32,
@@ -52,40 +19,6 @@ pub struct Upgrade {
 
     // Effect needs to be a bit more complex i think
     pub effects: Vec<Effect>,
-}
-
-impl Into<Registrable> for Upgrade {
-    fn into(self) -> Registrable {
-        Registrable::Upgrade(self)
-    }
-}
-
-// Implement for Upgrade
-impl FromRegistrable for Upgrade {
-    fn from_registrable(registrable: &Registrable) -> Option<&Self> {
-        match registrable {
-            Registrable::Upgrade(upgrade) => Some(upgrade),
-        }
-    }
-}
-
-impl FromRegistrableMut for Upgrade {
-    fn from_registrable_mut(registrable: &mut Registrable) -> Option<&mut Self> {
-        match registrable {
-            Registrable::Upgrade(upgrade) => Some(upgrade),
-        }
-    }
-}
-
-impl TryInto<Upgrade> for Registrable {
-    type Error = &'static str;
-
-    fn try_into(self) -> Result<Upgrade, Self::Error> {
-        match self {
-            Registrable::Upgrade(upgrade) => Ok(upgrade),
-            // Future variants would return Err("Cannot convert to Upgrade")
-        }
-    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
@@ -142,34 +75,5 @@ impl std::fmt::Debug for Upgrade {
                     .collect::<Vec<String>>(),
             )
             .finish()
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct Upgrades(HashMap<String, Upgrade>);
-
-impl Upgrades {
-    pub fn register(&mut self, upgrade: Upgrade) {
-        self.0.insert(upgrade.name.clone(), upgrade);
-    }
-
-    pub fn get(&self, name: &str) -> Option<&Upgrade> {
-        self.0.get(name)
-    }
-
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut Upgrade> {
-        self.0.get_mut(name)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Upgrade)> {
-        self.0.iter()
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = &Upgrade> {
-        self.0.values()
-    }
-
-    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Upgrade> {
-        self.0.values_mut()
     }
 }

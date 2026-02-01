@@ -2,10 +2,11 @@ use bevy::{color::palettes::basic::*, input_focus::InputFocus, prelude::*};
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_inspector_egui::{bevy_egui::EguiPlugin, quick::WorldInspectorPlugin};
 use clicker_plugin::*;
+use cybird::Context;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 
-#[derive(Resource /* Default */, Reflect)]
+#[derive(Resource, Default, Reflect)]
 struct Score(u32);
 
 #[derive(Message)]
@@ -20,6 +21,15 @@ struct PluginLoader(pub Vec<libloading::Library>);
 impl PluginLoader {
     fn add(&mut self, lib: libloading::Library) {
         self.0.push(lib);
+    }
+}
+
+#[derive(Resource, Default, Reflect)]
+struct PluginDisplay(pub Vec<String>);
+
+impl PluginDisplay {
+    fn add(&mut self, id: String) {
+        self.0.push(id);
     }
 }
 
@@ -64,6 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(EguiPlugin::default())
         .add_plugins(WorldInspectorPlugin::new())
         .add_plugins(ResourceInspectorPlugin::<Score>::default())
+        .add_plugins(ResourceInspectorPlugin::<PluginDisplay>::default())
         .add_message::<OnClick>()
         .add_message::<OnStage>()
         .add_message::<OnUpgrade>()
@@ -73,7 +84,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init_resource::<GameState>()
         .init_resource::<Score>()
         .init_resource::<PluginLoader>()
+        .init_resource::<PluginDisplay>()
         .register_type::<Score>()
+        .register_type::<PluginDisplay>()
         .add_systems(Startup, setup)
         .add_systems(Startup, register_upgrades)
         .add_systems(Update, score_handler)
@@ -97,12 +110,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(Message)]
 struct OnStage;
-
-impl Default for Score {
-    fn default() -> Self {
-        Score(0)
-    }
-}
 
 fn stage_handler(
     score: Res<Score>,
@@ -131,13 +138,28 @@ fn stage_handler(
     }
 }
 
-fn plugin_loader(mut gamestate: ResMut<GameState>, mut plugin_loader: ResMut<PluginLoader>) {
-    try_load_plugin(
-        "./target/debug/upgrade3.dll",
-        &mut gamestate,
-        &mut plugin_loader,
-    )
-    .expect("Failed to load plugin");
+fn plugin_loader(
+    mut gamestate: ResMut<GameState>,
+    mut plugin_loader: ResMut<PluginLoader>,
+    mut plugin_display: ResMut<PluginDisplay>,
+) {
+    if cfg!(debug_assertions) {
+        try_load_plugin(
+            "./target/debug/upgrade3.dll",
+            &mut gamestate,
+            &mut plugin_loader,
+            &mut plugin_display,
+        )
+        .expect("Failed to load plugin");
+    } else {
+        try_load_plugin(
+            "./plugins/",
+            &mut gamestate,
+            &mut plugin_loader,
+            &mut plugin_display,
+        )
+        .expect("Failed to load plugin");
+    }
 }
 
 fn upgrade_gamestage(gamestate: Res<GameState>, mut query: Query<(&mut Visibility, &UpgradeId)>) {
@@ -147,10 +169,9 @@ fn upgrade_gamestage(gamestate: Res<GameState>, mut query: Query<(&mut Visibilit
             .get_registrables::<Upgrade>()
             .iter()
             .find(|u| u.name == *upgrade_id.0)
+            && *stage == gamestate.stage
         {
-            if *stage == gamestate.stage {
-                *visibility = Visibility::Visible;
-            }
+            *visibility = Visibility::Visible;
         }
     }
 }
@@ -236,7 +257,7 @@ fn upgrade_effect(
             .iter()
             .filter(|effect| matches!(effect.value, EffectValue::Prestige))
             .collect::<Vec<_>>();
-        if upgrade_effect.len() >= 1 {
+        if !upgrade_effect.is_empty() {
             info!("Prestige found");
             prestige_writer.write(Prestige);
         }
@@ -619,10 +640,12 @@ fn button() -> impl Bundle {
     )
 }
 
+#[cfg(debug_assertions)]
 fn try_load_plugin(
     path: &str,
     gamestate: &mut GameState,
     plugin_loader: &mut PluginLoader,
+    plugin_display: &mut PluginDisplay,
 ) -> Result<(), Box<dyn std::error::Error>> {
     unsafe {
         println!("  Loading DLL: {}", path);
@@ -658,7 +681,68 @@ fn try_load_plugin(
         free_string(author_ptr as *mut c_char);
         free_string(id_ptr as *mut c_char);
         plugin_loader.add(lib);
+        plugin_display.add(id.to_string());
 
+        Ok(())
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn try_load_plugin(
+    path: &str,
+    gamestate: &mut GameState,
+    plugin_loader: &mut PluginLoader,
+    plugin_display: &mut PluginDisplay,
+) -> Result<(), Box<dyn std::error::Error>> {
+    unsafe {
+        println!("Path: {}", path);
+        for dll in std::fs::read_dir(path)?.filter_map(|entry| entry.ok()) {
+            println!("dll: {:?}", dll);
+            if let Ok(metadata) = dll.metadata() {
+                if metadata.is_file() {
+                    unsafe {
+                        println!("  Loading DLL: {}", dll.path().display());
+                        let lib = libloading::Library::new(dll.path())?;
+                        println!("  DLL loaded successfully");
+
+                        // Get plugin metadata
+                        let get_author: libloading::Symbol<
+                            unsafe extern "C" fn() -> *const c_char,
+                        > = lib.get(b"get_author")?;
+                        let get_id: libloading::Symbol<unsafe extern "C" fn() -> *const c_char> =
+                            lib.get(b"get_id")?;
+                        let load_plugin: libloading::Symbol<
+                            unsafe extern "C" fn(*mut std::ffi::c_void) -> i32,
+                        > = lib
+                            .get(b"load_plugin")
+                            .expect("Failed to load load_plugin symbol");
+                        let free_string: libloading::Symbol<unsafe extern "C" fn(*mut c_char)> =
+                            lib.get(b"free_string")?;
+
+                        // Call the functions
+                        let author_ptr = get_author();
+                        let id_ptr = get_id();
+
+                        let author = CStr::from_ptr(author_ptr).to_str()?;
+                        let id = CStr::from_ptr(id_ptr).to_str()?;
+
+                        println!("  Plugin Author: {}", author);
+                        println!("  Plugin ID: {}", id);
+
+                        let result = load_plugin(
+                            &mut gamestate.context as *mut PluginContext as *mut std::ffi::c_void,
+                        );
+                        println!("  Plugin load result: {}", result);
+
+                        // Free the allocated strings
+                        free_string(author_ptr as *mut c_char);
+                        free_string(id_ptr as *mut c_char);
+                        plugin_loader.add(lib);
+                        plugin_display.add(id.to_string());
+                    }
+                }
+            }
+        }
         Ok(())
     }
 }
