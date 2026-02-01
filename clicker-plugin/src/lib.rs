@@ -1,16 +1,37 @@
 use std::collections::HashMap;
 
+pub trait Context {
+    type Registrable;
+
+    fn register<T>(&mut self, registrable: T)
+    where
+        T: Into<Self::Registrable>;
+
+    fn get_registrables<T>(&self) -> Vec<&T>
+    where
+        T: FromRegistrable<Self::Registrable>;
+
+    fn get_registrables_mut<T>(&mut self) -> Vec<&mut T>
+    where
+        T: FromRegistrableMut<Self::Registrable>;
+}
+
 #[derive(Default)]
 pub struct PluginContext(Vec<Registrable>);
 
-impl PluginContext {
-    pub fn register<T: Into<Registrable>>(&mut self, registrable: T) {
+impl Context for PluginContext {
+    type Registrable = Registrable;
+
+    fn register<T>(&mut self, registrable: T)
+    where
+        T: Into<Self::Registrable>,
+    {
         self.0.push(registrable.into());
     }
 
-    pub fn get_registrables<T>(&self) -> Vec<&T>
+    fn get_registrables<T>(&self) -> Vec<&T>
     where
-        T: FromRegistrable,
+        T: FromRegistrable<Self::Registrable>,
     {
         self.0
             .iter()
@@ -18,9 +39,9 @@ impl PluginContext {
             .collect()
     }
 
-    pub fn get_registrables_mut<T>(&mut self) -> Vec<&mut T>
+    fn get_registrables_mut<T>(&mut self) -> Vec<&mut T>
     where
-        T: FromRegistrableMut,
+        T: FromRegistrableMut<Self::Registrable>,
     {
         self.0
             .iter_mut()
@@ -29,12 +50,12 @@ impl PluginContext {
     }
 }
 
-pub trait FromRegistrable {
-    fn from_registrable(registrable: &Registrable) -> Option<&Self>;
+pub trait FromRegistrable<R> {
+    fn from_registrable(registrable: &R) -> Option<&Self>;
 }
 
-pub trait FromRegistrableMut {
-    fn from_registrable_mut(registrable: &mut Registrable) -> Option<&mut Self>;
+pub trait FromRegistrableMut<R> {
+    fn from_registrable_mut(registrable: &mut R) -> Option<&mut Self>;
 }
 
 pub enum Registrable {
@@ -61,7 +82,7 @@ impl Into<Registrable> for Upgrade {
 }
 
 // Implement for Upgrade
-impl FromRegistrable for Upgrade {
+impl FromRegistrable<Registrable> for Upgrade {
     fn from_registrable(registrable: &Registrable) -> Option<&Self> {
         match registrable {
             Registrable::Upgrade(upgrade) => Some(upgrade),
@@ -69,7 +90,7 @@ impl FromRegistrable for Upgrade {
     }
 }
 
-impl FromRegistrableMut for Upgrade {
+impl FromRegistrableMut<Registrable> for Upgrade {
     fn from_registrable_mut(registrable: &mut Registrable) -> Option<&mut Self> {
         match registrable {
             Registrable::Upgrade(upgrade) => Some(upgrade),
