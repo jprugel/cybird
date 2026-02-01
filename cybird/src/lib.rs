@@ -1,3 +1,6 @@
+// Re-export the macros
+pub use cybird_macro::{Context, Registrable, plugin};
+
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub trait Plugin<T: Context> {
@@ -30,6 +33,3 @@ pub trait FromRegistrable<R> {
 pub trait FromRegistrableMut<R> {
     fn from_registrable_mut(registrable: &mut R) -> Option<&mut Self>;
 }
-
-// Re-export the macros
-pub use cybird_macro::plugin;

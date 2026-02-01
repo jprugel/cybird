@@ -1,44 +1,14 @@
-use cybird::{Context, FromRegistrable, FromRegistrableMut};
+use cybird::{Context, FromRegistrable, FromRegistrableMut, Registrable};
 use std::collections::HashMap;
 
-#[derive(Default)]
+#[derive(Default, Context)]
 pub struct PluginContext(Vec<Registrable>);
-
-impl Context for PluginContext {
-    type Registrable = Registrable;
-
-    fn register<T>(&mut self, registrable: T)
-    where
-        T: Into<Self::Registrable>,
-    {
-        self.0.push(registrable.into());
-    }
-
-    fn get_registrables<T>(&self) -> Vec<&T>
-    where
-        T: FromRegistrable<Self::Registrable>,
-    {
-        self.0
-            .iter()
-            .filter_map(|registrable| T::from_registrable(registrable))
-            .collect()
-    }
-
-    fn get_registrables_mut<T>(&mut self) -> Vec<&mut T>
-    where
-        T: FromRegistrableMut<Self::Registrable>,
-    {
-        self.0
-            .iter_mut()
-            .filter_map(|registrable| T::from_registrable_mut(registrable))
-            .collect()
-    }
-}
 
 pub enum Registrable {
     Upgrade(Upgrade),
 }
 
+#[derive(Registrable)]
 pub struct Upgrade {
     pub name: String,
     pub level: u32,
@@ -50,40 +20,6 @@ pub struct Upgrade {
 
     // Effect needs to be a bit more complex i think
     pub effects: Vec<Effect>,
-}
-
-impl Into<Registrable> for Upgrade {
-    fn into(self) -> Registrable {
-        Registrable::Upgrade(self)
-    }
-}
-
-// Implement for Upgrade
-impl FromRegistrable<Registrable> for Upgrade {
-    fn from_registrable(registrable: &Registrable) -> Option<&Self> {
-        match registrable {
-            Registrable::Upgrade(upgrade) => Some(upgrade),
-        }
-    }
-}
-
-impl FromRegistrableMut<Registrable> for Upgrade {
-    fn from_registrable_mut(registrable: &mut Registrable) -> Option<&mut Self> {
-        match registrable {
-            Registrable::Upgrade(upgrade) => Some(upgrade),
-        }
-    }
-}
-
-impl TryInto<Upgrade> for Registrable {
-    type Error = &'static str;
-
-    fn try_into(self) -> Result<Upgrade, Self::Error> {
-        match self {
-            Registrable::Upgrade(upgrade) => Ok(upgrade),
-            // Future variants would return Err("Cannot convert to Upgrade")
-        }
-    }
 }
 
 #[derive(PartialEq, Eq, Debug)]
