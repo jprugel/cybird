@@ -1,0 +1,18 @@
+[package]
+name = "crypto-crab"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+bevy = "0.18.0"
+libloading = "0.9.0"
+clicker-plugin = { path = "../clicker-plugin" }
+cybird = { path = "../cybird" }
+bevy-inspector-egui = "0.36.0"
+
+[lints.clippy]
+# Bevy supplies arguments to systems via dependency injection, so it's natural for systems to
+# request more than 7 arguments -- which triggers this lint.
+too_many_arguments = "allow"
+# Queries that access many components may trigger this lint.
+type_complexity = "allow"

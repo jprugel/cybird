@@ -17,7 +17,7 @@ pub fn plugin(_attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-use syn::{Attribute, DeriveInput, Meta};
+use syn::{Attribute, DeriveInput};
 
 // ... existing plugin macro ...
 
@@ -69,24 +69,24 @@ pub fn derive_registrable(input: TokenStream) -> TokenStream {
 
 fn extract_variant_info(attrs: &[Attribute]) -> Option<(proc_macro2::TokenStream, syn::Ident)> {
     for attr in attrs {
-        if attr.path().is_ident("registrable") {
-            if let Ok(meta_list) = attr.meta.require_list() {
-                let tokens = &meta_list.tokens;
-                let token_str = tokens.to_string();
+        if attr.path().is_ident("registrable")
+            && let Ok(meta_list) = attr.meta.require_list()
+        {
+            let tokens = &meta_list.tokens;
+            let token_str = tokens.to_string();
 
-                if token_str.contains("::") {
-                    // Parse "EnumName::VariantName"
-                    let parts: Vec<&str> = token_str.split("::").collect();
-                    if parts.len() == 2 {
-                        let enum_name: proc_macro2::TokenStream = parts[0].parse().unwrap();
-                        let variant_name: syn::Ident = syn::parse_str(parts[1]).unwrap();
-                        return Some((enum_name, variant_name));
-                    }
-                } else {
-                    // Parse just "VariantName", assume Registrable enum
-                    if let Ok(variant_name) = syn::parse_str::<syn::Ident>(&token_str) {
-                        return Some((quote! { Registrable }, variant_name));
-                    }
+            if token_str.contains("::") {
+                // Parse "EnumName::VariantName"
+                let parts: Vec<&str> = token_str.split("::").collect();
+                if parts.len() == 2 {
+                    let enum_name: proc_macro2::TokenStream = parts[0].parse().unwrap();
+                    let variant_name: syn::Ident = syn::parse_str(parts[1]).unwrap();
+                    return Some((enum_name, variant_name));
+                }
+            } else {
+                // Parse just "VariantName", assume Registrable enum
+                if let Ok(variant_name) = syn::parse_str::<syn::Ident>(&token_str) {
+                    return Some((quote! { Registrable }, variant_name));
                 }
             }
         }

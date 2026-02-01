@@ -1,9 +1,9 @@
 [workspace]
 resolver = "3"
 members = [
-    "runner",
+    "crypto-crab",
     "cybird",
     "cybird-macro",
-    "upgrade3",
+    "crazier-crab",
     "clicker-plugin",
 ]

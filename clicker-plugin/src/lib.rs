@@ -1,5 +1,4 @@
 use cybird::{Context, FromRegistrable, FromRegistrableMut, Registrable};
-use std::collections::HashMap;
 
 #[derive(Default, Context)]
 pub struct PluginContext(Vec<Registrable>);
@@ -76,34 +75,5 @@ impl std::fmt::Debug for Upgrade {
                     .collect::<Vec<String>>(),
             )
             .finish()
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct Upgrades(HashMap<String, Upgrade>);
-
-impl Upgrades {
-    pub fn register(&mut self, upgrade: Upgrade) {
-        self.0.insert(upgrade.name.clone(), upgrade);
-    }
-
-    pub fn get(&self, name: &str) -> Option<&Upgrade> {
-        self.0.get(name)
-    }
-
-    pub fn get_mut(&mut self, name: &str) -> Option<&mut Upgrade> {
-        self.0.get_mut(name)
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (&String, &Upgrade)> {
-        self.0.iter()
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = &Upgrade> {
-        self.0.values()
-    }
-
-    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Upgrade> {
-        self.0.values_mut()
     }
 }

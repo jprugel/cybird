@@ -3,15 +3,15 @@ use cybird::*;
 
 #[cybird::plugin]
 #[derive(Default)]
-pub struct Upgrade3;
+pub struct CrazierCrab;
 
-impl Plugin<PluginContext> for Upgrade3 {
+impl Plugin<PluginContext> for CrazierCrab {
     fn author(&self) -> &str {
         "jprugel"
     }
 
     fn id(&self) -> &str {
-        "upgrade3"
+        "crazier-crab"
     }
 
     fn load(&self, ctx: &mut PluginContext) -> Result<()> {

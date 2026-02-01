@@ -35,11 +35,12 @@ fn extract_plugin_info(content: &str) -> (String, String) {
     let mut context_type = "()".to_string();
 
     for line in content.lines() {
-        if line.contains("pub struct") && !line.contains("//") {
-            if let Some(name) = line.split_whitespace().nth(2) {
-                struct_name = name.trim_end_matches(';').to_string();
-                break;
-            }
+        if line.contains("pub struct")
+            && !line.contains("//")
+            && let Some(name) = line.split_whitespace().nth(2)
+        {
+            struct_name = name.trim_end_matches(';').to_string();
+            break;
         }
     }
 
@@ -68,6 +69,7 @@ fn generate_exports_for_plugin(struct_name: &str, context_type: &str) -> String 
 use std::os::raw::c_char;
 use std::ffi::CString;
 
+#[allow(clippy::default_constructed_unit_structs)]
 #[unsafe(no_mangle)]
 pub extern "C" fn get_author() -> *const c_char {{
     let plugin = {struct_name}::default();
@@ -76,6 +78,7 @@ pub extern "C" fn get_author() -> *const c_char {{
     c_string.into_raw()
 }}
 
+#[allow(clippy::default_constructed_unit_structs)]
 #[unsafe(no_mangle)]
 pub extern "C" fn get_id() -> *const c_char {{
     let plugin = {struct_name}::default();
@@ -84,6 +87,7 @@ pub extern "C" fn get_id() -> *const c_char {{
     c_string.into_raw()
 }}
 
+#[allow(clippy::default_constructed_unit_structs)]
 #[unsafe(no_mangle)]
 pub extern "C" fn load_plugin(ctx_ptr: *mut std::ffi::c_void) -> i32 {{
     unsafe {{
@@ -103,6 +107,7 @@ pub extern "C" fn load_plugin(ctx_ptr: *mut std::ffi::c_void) -> i32 {{
 }}
 
 // Cleanup function to free the allocated strings
+#[allow(clippy::default_constructed_unit_structs)]
 #[unsafe(no_mangle)]
 pub extern "C" fn free_string(s: *mut c_char) {{
     unsafe {{
