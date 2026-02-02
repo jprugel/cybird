@@ -1,5 +1,11 @@
-// Re-export the macros
-pub use cybird_macro::{Context, Registrable, plugin};
+pub mod prelude {
+    // Core types and traits
+    pub use crate::{Context, Plugin, Result};
+    pub use crate::{FromRegistrable, FromRegistrableMut};
+
+    // Derive macros
+    pub use cybird_macro::{Context, Registrable, plugin};
+}
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 

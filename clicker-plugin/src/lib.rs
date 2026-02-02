@@ -1,4 +1,4 @@
-use cybird::{Context, FromRegistrable, FromRegistrableMut, Registrable};
+use cybird::prelude::*;
 
 #[derive(Default, Context)]
 pub struct PluginContext(Vec<Registrable>);
