@@ -1,5 +1,5 @@
 use clicker_plugin::*;
-use cybird::*;
+use cybird::prelude::*;
 
 #[cybird::plugin]
 #[derive(Default)]
