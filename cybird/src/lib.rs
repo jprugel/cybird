@@ -4,8 +4,10 @@ pub mod prelude {
     pub use crate::{FromRegistrable, FromRegistrableMut};
 
     // Derive macros
-    pub use cybird_macro::{Context, Registrable, plugin};
+    pub use cybird_macro::{Context, Registrable};
 }
+
+pub use cybird_macro::plugin;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
