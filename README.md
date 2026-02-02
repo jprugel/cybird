@@ -72,6 +72,7 @@ Create plugins by implementing the `Plugin` trait:
 ```rust
 use cybird::prelude::*;
 
+#[cybird::plugin]
 #[derive(Default)]
 pub struct MyPlugin;
 
@@ -94,20 +95,6 @@ impl Plugin<GameContext> for MyPlugin {
         
         Ok(())
     }
-}
-```
-
-### Dynamic Plugin Loading
-
-For dynamic plugins that can be loaded at runtime, use the `#[cybird::plugin]` attribute:
-
-```rust
-#[cybird::plugin]
-#[derive(Default)]
-pub struct DynamicPlugin;
-
-impl Plugin<GameContext> for DynamicPlugin {
-    // Implementation...
 }
 ```
 
