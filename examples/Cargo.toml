@@ -1,0 +1,10 @@
+[workspace]
+resolver = "3"
+members = [
+    "clicker-plugin",
+    "crazier-crab",
+    "crypto-crab"
+]
+
+[workspace.dependencies]
+cybird = { path = "../cybird" }

@@ -13,5 +13,5 @@ default = ["dynamic"]
 dynamic = []
 
 [dependencies]
-cybird = { path = "../cybird" }
 clicker-plugin = { path = "../clicker-plugin" }
+cybird = { workspace = true }

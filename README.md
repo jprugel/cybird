@@ -184,9 +184,9 @@ just run
 just build
 ```
 
-### Using with Just:
+### Using with nu:
 The project includes a `justfile` with convenient commands:
-- `just run` - Run the example game
+- `nu tasks.nu run` - Run the example game
 - `just build` - Build dynamic plugins
 
 ## 🎮 Example Game Features
@@ -248,7 +248,7 @@ This project is designed to be a foundation for plugin systems in Rust applicati
 ## 📋 To Do
 
 - [x] Implement simple API for developers to implement a single feature that is moddable
-- [ ] Expand to multi-feature API
+- [x] Expand to multi-feature API
 - [ ] Allow game developers to create a simple mod collection manager with a single command using just
 - [ ] Expand just commands to focus on extension
 
@@ -260,14 +260,3 @@ This project is open source. See individual crate documentation for specific lic
 
 **Getting Started**: Check out the `crypto-crab` example to see Cybird in action, or dive into the `clicker-plugin` crate to understand how to build your own plugin system!
 ```
-
-This README provides a comprehensive overview of your Cybird plugin system, explaining:
-
-1. **What it is**: A flexible plugin system for Rust applications
-2. **Architecture**: How the different crates work together
-3. **Usage examples**: Step-by-step guide for implementation
-4. **Complete working example**: Based on your clicker game
-5. **API reference**: Documentation of key traits and macros
-6. **Design philosophy**: The principles behind the system
-
-The README is structured to help both game developers who want to integrate
