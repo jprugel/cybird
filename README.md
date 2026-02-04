@@ -1,5 +1,7 @@
 <div align="center"><img width="200" height="200" alt="177021013957708899" src="https://github.com/user-attachments/assets/eaf2ec57-b183-414a-91e7-4137e120982e" />
+<div align="center">
 # Cybird
+</div>
 </div>
 
 A flexible, type-safe plugin system for Rust applications and games. Cybird provides a generic API that allows developers to create modular, extensible applications with dynamic plugin loading capabilities.
