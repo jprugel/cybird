@@ -4,7 +4,6 @@
 <br></br>
 </div>
 </div>
-
 A flexible, type-safe plugin system for Rust applications and games. Cybird provides a generic API that allows developers to create modular, extensible applications with dynamic plugin loading capabilities.
 
 ## 🎯 Overview
