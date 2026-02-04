@@ -1,6 +1,7 @@
 <div align="center"><img width="200" height="200" alt="177021013957708899" src="https://github.com/user-attachments/assets/eaf2ec57-b183-414a-91e7-4137e120982e" />
 <div align="center">
-# Cybird
+<h1>Cybird</h1>
+<br></br>
 </div>
 </div>
 
