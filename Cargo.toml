@@ -6,4 +6,6 @@ members = [
     "examples/clicker-plugin",
     "examples/crazier-crab",
     "examples/crypto-crab",
+    "examples/rogue-game",
+    "examples/rogue-lib",
 ]
