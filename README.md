@@ -174,20 +174,10 @@ impl Plugin<PluginContext> for CrazierCrab {
 
 ## 🔧 Building and Running
 
-### Build the example game:
-```bash
-just run
-```
-
-### Build a dynamic plugin:
-```bash
-just build
-```
-
 ### Using with nu:
-The project includes a `justfile` with convenient commands:
+The project includes a `tasks.nu` with convenient commands:
 - `nu tasks.nu run` - Run the example game
-- `just build` - Build dynamic plugins
+- `nu tasks.nu build` - Build dynamic plugins
 
 ## 🎮 Example Game Features
 
