@@ -1,1 +1,1 @@
-/// implement A* algorithm
+// implement A* algorithm

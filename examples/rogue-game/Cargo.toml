@@ -7,3 +7,4 @@ edition = "2024"
 rogue-lib = { path = "../rogue-lib" }
 crossterm = "0.29.0"
 rand = "0.9.2"
+num = "0.4.3"

@@ -1,6 +1,8 @@
 mod director;
+mod math;
 mod move_to;
 mod pathfinding;
+mod vector;
 
 use rogue_lib::prelude::*;
 
