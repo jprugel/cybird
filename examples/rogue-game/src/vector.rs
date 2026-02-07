@@ -7,7 +7,13 @@ struct Vector2<T: Num> {
     y: T,
 }
 
-trait Magnitude {
+impl<T: Num> Vector2<T> {
+    fn new(x: T, y: T) -> Self {
+        Vector2 { x, y }
+    }
+}
+
+pub trait Magnitude {
     type Output;
 
     fn magnitude(self) -> Self::Output;
@@ -27,7 +33,7 @@ where
     }
 }
 
-trait Distance {
+pub trait Distance {
     type Output;
 
     fn distance(self, other: Self) -> Self::Output;
