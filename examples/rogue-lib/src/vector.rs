@@ -2,13 +2,14 @@ use crate::math::Root;
 use num::{Num, One, pow};
 use std::ops::Mul;
 
-struct Vector2<T: Num> {
-    x: T,
-    y: T,
+#[derive(Hash, Eq, PartialEq, Clone, Copy, Debug)]
+pub struct Vector2<T: Num> {
+    pub x: T,
+    pub y: T,
 }
 
 impl<T: Num> Vector2<T> {
-    fn new(x: T, y: T) -> Self {
+    pub fn new(x: T, y: T) -> Self {
         Vector2 { x, y }
     }
 }

@@ -1,11 +1,11 @@
 mod director;
-mod math;
 mod move_to;
 mod pathfinding;
-mod vector;
 
+use pathfinding::*;
 use rogue_lib::prelude::*;
 
+use crate::move_to::MoveTo as MT;
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     event::{self, Event, KeyCode},
@@ -29,42 +29,25 @@ struct Director {
     max_enemies: u16,
 }
 
-struct Coordinate {
-    x: u16,
-    y: u16,
-}
-
-impl Coordinate {
-    fn new(x: u16, y: u16) -> Self {
-        Coordinate { x, y }
-    }
-
-    fn distance(&self, other: &Coordinate) -> u16 {
-        ((self.x as i32 - other.x as i32).abs() + (self.y as i32 - other.y as i32).abs()) as u16
-    }
-}
-
 pub struct Player {
-    pub x: u16,
-    pub y: u16,
+    pub position: Vector2<u16>,
     icon: char,
 }
 
 impl Player {
     fn new() -> Self {
         Player {
-            x: 10, // Starting position
-            y: 5,  // Starting position
+            position: Vector2::new(10, 5),
             icon: '@',
         }
     }
 
     fn move_player(&mut self, direction: char, terminal_width: u16, terminal_height: u16) {
         match direction {
-            'w' if self.y > 0 => self.y -= 1,
-            's' if self.y < terminal_height - 1 => self.y += 1,
-            'a' if self.x > 0 => self.x -= 1,
-            'd' if self.x < terminal_width - 1 => self.x += 1,
+            'w' if self.position.x > 0 => self.position.y -= 1,
+            's' if self.position.y < terminal_height - 1 => self.position.y += 1,
+            'a' if self.position.x > 0 => self.position.x -= 1,
+            'd' if self.position.y < terminal_width - 1 => self.position.x += 1,
             _ => {} // Invalid move or boundary hit
         }
     }
@@ -79,10 +62,14 @@ fn draw_game(
     queue!(stdout, Clear(ClearType::All))?;
 
     // Move cursor to player position and draw player
-    queue!(stdout, MoveTo(player.x, player.y))?;
+    queue!(stdout, MoveTo(player.position.x, player.position.y))?;
     queue!(stdout, Print(player.icon))?;
     for enemy in enemies {
-        queue!(stdout, MoveTo(enemy.x, enemy.y), Print(enemy.icon()))?;
+        queue!(
+            stdout,
+            MoveTo(enemy.position.x, enemy.position.y),
+            Print(enemy.icon())
+        )?;
     }
 
     // Move cursor to bottom and show instructions
@@ -106,6 +93,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Initial draw
     draw_game(&mut stdout, &player, &enemies)?;
+    let (width, height) = size()?;
+    let map = Map::new(width, height);
+    let graph = map.into_graph();
 
     // 2. Main application loop
     loop {
@@ -113,17 +103,27 @@ fn main() -> Result<(), Box<dyn Error>> {
         if event::poll(std::time::Duration::from_millis(50))? {
             if enemies.len() < 5 {
                 let mut rng = rand::rng();
-                let random_x = rng.random_range(0..=80);
-                let random_y = rng.random_range(0..=24);
+                let size = size()?;
+                let random_x = rng.random_range(0..=size.0);
+                let random_y = rng.random_range(0..=size.1);
                 let enemy = Enemy::builder()
-                    .x(random_x)
-                    .y(random_y)
+                    .position(Vector2::new(random_x, random_y))
                     .icon('E')
                     .name(String::from("Skeleton"))
                     .build();
 
                 enemies.push(enemy);
             }
+
+            for mut enemy in &mut enemies {
+                let start_node = graph.get_node(enemy.position).unwrap();
+                let goal_node = graph.get_node(player.position).unwrap();
+                let path = pathfind(start_node, goal_node, &graph);
+                if let Some(path) = path {
+                    enemy.move_to(path[1].position.x, path[1].position.y);
+                }
+            }
+            draw_game(&mut stdout, &player, &enemies)?;
 
             // Read the event
             if let Event::Key(key) = event::read()? {
