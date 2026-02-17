@@ -6,6 +6,7 @@ pub struct Enemy {
     pub position: Vector2<u16>,
     icon: char,
     name: String,
+    pub path: Vec<Vector2<u16>>,
 }
 
 impl Default for Enemy {
@@ -14,6 +15,7 @@ impl Default for Enemy {
             position: Vector2 { x: 0, y: 0 },
             icon: 'E',
             name: "Enemy".to_string(),
+            path: Vec::new(),
         }
     }
 }

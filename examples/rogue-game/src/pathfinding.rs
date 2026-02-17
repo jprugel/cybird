@@ -109,5 +109,6 @@ pub fn pathfind<'a>(
             return None;
         }
     }
+    //result.reverse();
     Some(result)
 }

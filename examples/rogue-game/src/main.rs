@@ -111,6 +111,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .position(Vector2::new(random_x, random_y))
                     .icon('E')
                     .name(String::from("Skeleton"))
+                    .path(Vec::new())
                     .build();
 
                 enemies.push(enemy);
@@ -151,7 +152,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // 3. Restore the terminal state (crucial for a clean exit)
     execute!(stdout, Show, LeaveAlternateScreen)?; // Show cursor again
     disable_raw_mode()?;
-    logger.print_logs();
 
     Ok(())
 }
@@ -179,15 +179,20 @@ fn simulate_enemies<'a>(
     enemies: &'a mut Vec<Enemy>,
     graph: &'a Graph,
 ) {
-    let mut count = 0;
     for mut enemy in enemies {
-        logger.log(count);
-        count += 1;
-        let start_node = graph.get_node(enemy.position).unwrap();
-        let goal_node = graph.get_node(player.position).unwrap();
-        let path = pathfind(start_node, goal_node, &graph, logger);
-        if let Some(path) = path {
-            enemy.move_to(path[0].position.x, path[0].position.y);
+        if enemy.path.is_empty() {
+            let start_node = graph.get_node(enemy.position).unwrap();
+            let goal_node = graph.get_node(player.position).unwrap();
+            let path = pathfind(start_node, goal_node, &graph, logger);
+            enemy.path = path
+                .unwrap_or_default()
+                .iter()
+                .map(|node| node.position)
+                .collect();
+        }
+        if let Some(path) = enemy.path.first() {
+            let Vector2 { x, y } = enemy.path.pop().unwrap();
+            enemy.move_to(x, y);
         }
     }
 }
