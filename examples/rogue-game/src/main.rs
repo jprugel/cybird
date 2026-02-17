@@ -83,6 +83,7 @@ fn draw_game(
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let mut logger = Logger::new();
     // 1. Enable raw mode and enter alternate screen
     let mut enemies = Vec::new();
     enable_raw_mode()?;
@@ -115,15 +116,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 enemies.push(enemy);
             }
 
-            for mut enemy in &mut enemies {
-                let start_node = graph.get_node(enemy.position).unwrap();
-                let goal_node = graph.get_node(player.position).unwrap();
-                let path = pathfind(start_node, goal_node, &graph);
-                if let Some(path) = path {
-                    enemy.move_to(path[1].position.x, path[1].position.y);
-                }
-            }
-            draw_game(&mut stdout, &player, &enemies)?;
+            simulate_enemies(&mut logger, &player, &mut enemies, &graph);
 
             // Read the event
             if let Event::Key(key) = event::read()? {
@@ -158,6 +151,43 @@ fn main() -> Result<(), Box<dyn Error>> {
     // 3. Restore the terminal state (crucial for a clean exit)
     execute!(stdout, Show, LeaveAlternateScreen)?; // Show cursor again
     disable_raw_mode()?;
+    logger.print_logs();
 
     Ok(())
+}
+
+struct Logger(Vec<Box<dyn std::fmt::Debug>>);
+impl Logger {
+    fn new() -> Self {
+        Logger(Vec::new())
+    }
+
+    fn log(&mut self, message: impl std::fmt::Debug + 'static) {
+        self.0.push(Box::new(message));
+    }
+
+    fn print_logs(&self) {
+        for log in &self.0 {
+            println!("{:?}", log);
+        }
+    }
+}
+
+fn simulate_enemies<'a>(
+    logger: &'a mut Logger,
+    player: &'a Player,
+    enemies: &'a mut Vec<Enemy>,
+    graph: &'a Graph,
+) {
+    let mut count = 0;
+    for mut enemy in enemies {
+        logger.log(count);
+        count += 1;
+        let start_node = graph.get_node(enemy.position).unwrap();
+        let goal_node = graph.get_node(player.position).unwrap();
+        let path = pathfind(start_node, goal_node, &graph, logger);
+        if let Some(path) = path {
+            enemy.move_to(path[0].position.x, path[0].position.y);
+        }
+    }
 }
